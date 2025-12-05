@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { encryptAndStore, decryptFromStore } from '@/lib/crypto'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,7 +34,7 @@ const ASPECT_RATIOS: Record<string, [number, number]> = {
 }
 
 export default function ImageGenerator() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('z-image-api-key') || '')
+  const [apiKey, setApiKey] = useState('')
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT)
   const [negativePrompt, setNegativePrompt] = useState(DEFAULT_NEGATIVE_PROMPT)
   const [model, setModel] = useState('z-image-turbo')
@@ -44,9 +45,19 @@ export default function ImageGenerator() {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [status, setStatus] = useState('Ready.')
   const [elapsed, setElapsed] = useState(0)
+  const initialized = useRef(false)
 
   useEffect(() => {
-    localStorage.setItem('z-image-api-key', apiKey)
+    if (!initialized.current) {
+      initialized.current = true
+      decryptFromStore().then(setApiKey)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialized.current) {
+      encryptAndStore(apiKey)
+    }
   }, [apiKey])
 
   useEffect(() => {

@@ -189,6 +189,28 @@ Same as Option 2 above.
 
 5. Trigger redeploy
 
+## Security
+
+### API Key Storage
+
+Your Gitee AI API key is stored securely in the browser using **AES-256-GCM encryption**:
+
+- The key is encrypted before being saved to localStorage
+- Encryption key is derived using PBKDF2 (100,000 iterations) from browser fingerprint
+- Even if localStorage is accessed, the API key cannot be read without the same browser environment
+- Changing browsers or clearing browser data will require re-entering the API key
+
+**Implementation details** (`src/lib/crypto.ts`):
+- Uses Web Crypto API (native browser cryptography)
+- AES-256-GCM for authenticated encryption
+- Random IV for each encryption operation
+- Browser fingerprint includes: User-Agent, language, screen dimensions
+
+**Note**: While this provides protection against casual access and XSS attacks reading raw values, for maximum security in shared environments, consider:
+- Using a private/incognito window
+- Clearing browser data after use
+- Self-hosting with server-side API key storage
+
 ## Environment Variables
 
 ### Frontend (`apps/web/.env`)
