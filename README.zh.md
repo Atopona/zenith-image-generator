@@ -50,15 +50,11 @@ z-image/
 
 ## 本地开发
 
-### 1. Fork 并克隆仓库
-
-1. 前往 [https://github.com/WuMingDao/zenith-image-generator](https://github.com/WuMingDao/zenith-image-generator)
-2. 点击右上角的 **Fork** 按钮
-3. 克隆你 fork 的仓库:
+### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/zenith-image-generator.git
-cd zenith-image-generator
+git clone https://github.com/your-username/z-image.git
+cd z-image
 ```
 
 ### 2. 安装依赖
@@ -205,12 +201,14 @@ wrangler deploy
 - 更换浏览器或清除浏览器数据需要重新输入 API Key
 
 **实现细节** (`src/lib/crypto.ts`):
+
 - 使用 Web Crypto API (浏览器原生加密)
 - AES-256-GCM 认证加密
 - 每次加密使用随机 IV
 - 浏览器指纹包括: User-Agent、语言、屏幕尺寸
 
 **注意**: 虽然这提供了对普通访问和 XSS 攻击读取原始值的保护，但在共享环境中为了最大安全性，建议:
+
 - 使用隐私/无痕窗口
 - 使用后清除浏览器数据
 - 自托管并使用服务端 API Key 存储
@@ -219,14 +217,14 @@ wrangler deploy
 
 ### 前端 (`apps/web/.env`)
 
-| 变量 | 描述 | 默认值 |
-|----------|-------------|---------|
-| `VITE_API_URL` | API 基础 URL。Cloudflare Pages 部署时留空 | `` |
+| 变量           | 描述                                      | 默认值 |
+| -------------- | ----------------------------------------- | ------ |
+| `VITE_API_URL` | API 基础 URL。Cloudflare Pages 部署时留空 | ``     |
 
 ### API (`apps/api/wrangler.toml`)
 
-| 变量 | 描述 | 默认值 |
-|----------|-------------|---------|
+| 变量           | 描述             | 默认值                                        |
+| -------------- | ---------------- | --------------------------------------------- |
 | `CORS_ORIGINS` | 逗号分隔的允许源 | `http://localhost:5173,http://localhost:3000` |
 
 ## API 参考
@@ -236,12 +234,14 @@ wrangler deploy
 从文本提示生成图片。
 
 **请求头:**
+
 ```
 Content-Type: application/json
 X-API-Key: your-gitee-ai-api-key
 ```
 
 **请求体:**
+
 ```json
 {
   "prompt": "美丽的山间日落",
@@ -254,6 +254,7 @@ X-API-Key: your-gitee-ai-api-key
 ```
 
 **响应:**
+
 ```json
 {
   "url": "https://...",
@@ -263,38 +264,41 @@ X-API-Key: your-gitee-ai-api-key
 
 **参数:**
 
-| 字段 | 类型 | 必填 | 默认值 | 描述 |
-|-------|------|----------|---------|-------------|
-| `prompt` | string | 是 | - | 图片描述 (最多 10000 字符) |
-| `negative_prompt` | string | 否 | `""` | 图片中要避免的内容 |
-| `model` | string | 否 | `z-image-turbo` | 模型名称 |
-| `width` | number | 否 | `1024` | 图片宽度 (256-2048) |
-| `height` | number | 否 | `1024` | 图片高度 (256-2048) |
-| `num_inference_steps` | number | 否 | `9` | 生成步数 (1-50) |
+| 字段                  | 类型   | 必填 | 默认值          | 描述                       |
+| --------------------- | ------ | ---- | --------------- | -------------------------- |
+| `prompt`              | string | 是   | -               | 图片描述 (最多 10000 字符) |
+| `negative_prompt`     | string | 否   | `""`            | 图片中要避免的内容         |
+| `model`               | string | 否   | `z-image-turbo` | 模型名称                   |
+| `width`               | number | 否   | `1024`          | 图片宽度 (256-2048)        |
+| `height`              | number | 否   | `1024`          | 图片高度 (256-2048)        |
+| `num_inference_steps` | number | 否   | `9`             | 生成步数 (1-50)            |
 
 ## 支持的宽高比
 
-| 比例 | 尺寸 |
-|-------|------------|
-| 1:1 | 256×256, 512×512, 1024×1024, 2048×2048 |
-| 4:3 | 1152×896, 2048×1536 |
-| 3:4 | 768×1024, 1536×2048 |
-| 3:2 | 2048×1360 |
-| 2:3 | 1360×2048 |
-| 16:9 | 1024×576, 2048×1152 |
-| 9:16 | 576×1024, 1152×2048 |
+| 比例 | 尺寸                                   |
+| ---- | -------------------------------------- |
+| 1:1  | 256×256, 512×512, 1024×1024, 2048×2048 |
+| 4:3  | 1152×896, 2048×1536                    |
+| 3:4  | 768×1024, 1536×2048                    |
+| 3:2  | 2048×1360                              |
+| 2:3  | 1360×2048                              |
+| 16:9 | 1024×576, 2048×1152                    |
+| 9:16 | 576×1024, 1152×2048                    |
 
 ## 故障排除
 
 ### API Key 无法保存
+
 - 确保浏览器允许 localStorage
 - 检查是否在隐私/无痕模式
 
 ### CORS 错误
+
 - Cloudflare Pages: 应该自动工作
 - 分离部署: 更新 `apps/api/wrangler.toml` 中的 `CORS_ORIGINS`
 
 ### 构建失败
+
 - 确保安装了 Node.js 18+ 和 pnpm 9+
 - 运行 `pnpm install` 更新依赖
 
