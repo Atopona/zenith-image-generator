@@ -16,7 +16,16 @@
     "dev:api": "turbo run dev --filter=@z-image/api",
     "build:web": "turbo run build --filter=@z-image/web",
     "build:api": "turbo run build --filter=@z-image/api",
-    "build:shared": "turbo run build --filter=@z-image/shared"
+    "build:shared": "turbo run build --filter=@z-image/shared",
+    "deploy:cf-pages": "pnpm build:web && cd apps/web && wrangler pages deploy dist --project-name=z-image",
+    "deploy:cf-workers": "cd apps/api && wrangler deploy",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod --dir=apps/web/dist",
+    "docker:build": "docker build -t z-image-api .",
+    "docker:build:web": "docker build -f Dockerfile.web -t z-image-web .",
+    "docker:run": "docker run -p 8787:8787 --env-file .env z-image-api",
+    "docker:compose": "docker compose up",
+    "docker:compose:dev": "docker compose --profile dev up"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
