@@ -8,8 +8,10 @@
 import {
   type GenerateRequest,
   HF_SPACES,
+  MODEL_CONFIGS,
   PROVIDER_CONFIGS,
   type ProviderType,
+  getModelsByProvider,
   isAllowedImageUrl,
   validateDimensions,
   validatePrompt,
@@ -90,6 +92,42 @@ export function createApp(config: AppConfig = {}) {
   // Health check
   app.get('/', (c) => {
     return c.json({ message: 'Z-Image API is running' })
+  })
+
+  // Get all providers
+  app.get('/providers', (c) => {
+    const providers = Object.values(PROVIDER_CONFIGS).map((p) => ({
+      id: p.id,
+      name: p.name,
+      requiresAuth: p.requiresAuth,
+      authHeader: p.authHeader,
+    }))
+    return c.json({ providers })
+  })
+
+  // Get models by provider
+  app.get('/providers/:provider/models', (c) => {
+    const provider = c.req.param('provider') as ProviderType
+    if (!PROVIDER_CONFIGS[provider]) {
+      return c.json({ error: `Invalid provider: ${provider}` }, 400)
+    }
+    const models = getModelsByProvider(provider).map((m) => ({
+      id: m.id,
+      name: m.name,
+      features: m.features,
+    }))
+    return c.json({ provider, models })
+  })
+
+  // Get all models
+  app.get('/models', (c) => {
+    const models = MODEL_CONFIGS.map((m) => ({
+      id: m.id,
+      name: m.name,
+      provider: m.provider,
+      features: m.features,
+    }))
+    return c.json({ models })
   })
 
   // Unified generate endpoint
