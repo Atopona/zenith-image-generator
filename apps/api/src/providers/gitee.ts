@@ -2,10 +2,13 @@
  * Gitee AI Provider Implementation
  */
 
-import { Errors } from '@z-image/shared'
+import type { VideoTaskResponse } from '@z-image/shared'
+import { Errors, VIDEO_NEGATIVE_PROMPT } from '@z-image/shared'
 import type { ImageProvider, ProviderGenerateRequest, ProviderGenerateResult } from './types'
 
 const GITEE_API_URL = 'https://ai.gitee.com/v1/images/generations'
+const GITEE_VIDEO_API = 'https://ai.gitee.com/v1/async/videos/image-to-video'
+const GITEE_TASK_API = 'https://ai.gitee.com/api/v1/task'
 
 interface GiteeImageResponse {
   data: Array<{
@@ -115,3 +118,76 @@ export class GiteeProvider implements ImageProvider {
 }
 
 export const giteeProvider = new GiteeProvider()
+
+interface GiteeVideoTaskResponse {
+  task_id: string
+}
+
+interface GiteeTaskStatusResponse {
+  status: 'pending' | 'is_process' | 'success' | 'failure'
+  output?: {
+    file_url?: string
+    error?: string
+  }
+}
+
+export async function createVideoTask(
+  imageUrl: string,
+  prompt: string,
+  width: number,
+  height: number,
+  authToken: string
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('image', imageUrl)
+  formData.append('prompt', prompt)
+  formData.append('negative_prompt', VIDEO_NEGATIVE_PROMPT)
+  formData.append('model', 'Wan2_2-I2V-A14B')
+  formData.append('num_inference_steps', '6')
+  formData.append('num_frames', '48')
+  formData.append('guidance_scale', '1')
+  formData.append('width', width.toString())
+  formData.append('height', height.toString())
+
+  const response = await fetch(GITEE_VIDEO_API, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${authToken.trim()}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errData = (await response.json().catch(() => ({}))) as GiteeErrorResponse
+    throw parseGiteeError(response.status, errData)
+  }
+
+  const data = (await response.json()) as GiteeVideoTaskResponse
+  return data.task_id
+}
+
+export async function getVideoTaskStatus(
+  taskId: string,
+  authToken: string
+): Promise<VideoTaskResponse> {
+  const response = await fetch(`${GITEE_TASK_API}/${taskId}`, {
+    headers: {
+      Authorization: `Bearer ${authToken.trim()}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errData = (await response.json().catch(() => ({}))) as GiteeErrorResponse
+    throw parseGiteeError(response.status, errData)
+  }
+
+  const data = (await response.json()) as GiteeTaskStatusResponse
+
+  if (data.status === 'success') {
+    return { status: 'success', videoUrl: data.output?.file_url }
+  }
+  if (data.status === 'failure') {
+    return { status: 'failed', error: data.output?.error }
+  }
+  return { status: data.status === 'is_process' ? 'processing' : 'pending' }
+}

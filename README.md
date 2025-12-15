@@ -21,6 +21,7 @@ batch generation, and one-click deployment to Cloudflare Pages.
 ## Features
 
 - **Multiple AI Providers** - Gitee AI, HuggingFace Spaces, ModelScope
+- **Image-to-Video** - Generate videos from images (Gitee AI)
 - **Dark Mode UI** - Gradio-style with frosted glass effects
 - **Flexible Sizing** - Multiple aspect ratios (1:1, 16:9, 9:16, 4:3, etc.)
 - **4x Upscaling** - RealESRGAN integration

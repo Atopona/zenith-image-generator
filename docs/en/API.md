@@ -232,6 +232,105 @@ Upscale an image 4x using RealESRGAN.
 }
 ```
 
+## `POST /api/video/generate`
+
+Create an image-to-video generation task (Gitee AI only).
+
+**Headers:**
+
+```
+Content-Type: application/json
+X-API-Key: your-gitee-ai-api-key
+```
+
+**Request Body:**
+
+```json
+{
+  "provider": "gitee",
+  "imageUrl": "https://example.com/image.png",
+  "prompt": "A beautiful sunset over mountains",
+  "width": 1024,
+  "height": 1024
+}
+```
+
+**Response (Success):**
+
+```json
+{
+  "taskId": "task_abc123",
+  "status": "pending"
+}
+```
+
+**Parameters:**
+
+| Field      | Type   | Required | Description                    |
+| ---------- | ------ | -------- | ------------------------------ |
+| `provider` | string | Yes      | Must be `gitee`                |
+| `imageUrl` | string | Yes      | URL of the source image        |
+| `prompt`   | string | Yes      | Video generation prompt        |
+| `width`    | number | Yes      | Video width (256-2048)         |
+| `height`   | number | Yes      | Video height (256-2048)        |
+| `seed`     | number | No       | Random seed for reproducibility |
+
+## `GET /api/video/status/:taskId`
+
+Query the status of a video generation task.
+
+**Headers:**
+
+```
+X-API-Key: your-gitee-ai-api-key
+```
+
+**Path Parameters:**
+
+| Parameter | Type   | Description       |
+| --------- | ------ | ----------------- |
+| `taskId`  | string | Video task ID     |
+
+**Response (Pending/Processing):**
+
+```json
+{
+  "status": "processing"
+}
+```
+
+**Response (Success):**
+
+```json
+{
+  "status": "success",
+  "videoUrl": "https://example.com/generated-video.mp4"
+}
+```
+
+**Response (Failed):**
+
+```json
+{
+  "status": "failed",
+  "error": "Video generation failed"
+}
+```
+
+**Status Values:**
+
+| Status       | Description                    |
+| ------------ | ------------------------------ |
+| `pending`    | Task queued, not started yet   |
+| `processing` | Video is being generated       |
+| `success`    | Video generated successfully   |
+| `failed`     | Video generation failed        |
+
+**Notes:**
+- Video generation takes 60-180 seconds
+- Poll this endpoint every 3 seconds to check status
+- Video URL is temporary and should be downloaded promptly
+
 ## `GET /api/llm-providers`
 
 Get all available LLM providers for prompt optimization.

@@ -9,6 +9,7 @@ import {
   Info,
   Loader2,
   Trash2,
+  Video,
   X,
   ZoomIn,
   ZoomOut,
@@ -17,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ImageComparison } from '@/components/ui/ImageComparison'
+import { useVideoGenerator } from '@/hooks/useVideoGenerator'
 import { upscaleImage } from '@/lib/api'
 
 interface ImageResultCardProps {
@@ -62,6 +64,10 @@ export function ImageResultCard({
   const [isDragging, setIsDragging] = useState(false)
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 })
   const imageContainerRef = useRef<HTMLDivElement>(null)
+
+  // Video generation state
+  const { videoState, generateVideo } = useVideoGenerator()
+  const [showVideo, setShowVideo] = useState(false)
 
   // Use display URL if set (after applying upscale), otherwise original
   const currentImageUrl = displayUrl || imageDetails?.url
@@ -118,6 +124,33 @@ export function ImageResultCard({
     setTempUpscaledUrl(null)
     setIsComparing(false)
   }, [])
+
+  // Handle video generation
+  const handleGenerateVideo = useCallback(async () => {
+    if (!currentImageUrl || !imageDetails) return
+
+    const giteeToken = localStorage.getItem('gitee_token')
+    if (!giteeToken) {
+      toast.error('Please configure Gitee AI token first')
+      return
+    }
+
+    const width = Number.parseInt(imageDetails.dimensions.split('x')[0], 10) || 1024
+    const height = Number.parseInt(imageDetails.dimensions.split('x')[1], 10) || 1024
+
+    toast.info('Starting video generation...')
+    await generateVideo(currentImageUrl, imageDetails.prompt, width, height, 'gitee', giteeToken)
+  }, [currentImageUrl, imageDetails, generateVideo])
+
+  // Show video when generation succeeds
+  useEffect(() => {
+    if (videoState.status === 'success') {
+      setShowVideo(true)
+      toast.success('Video generated successfully!')
+    } else if (videoState.status === 'failed') {
+      toast.error(videoState.error || 'Video generation failed')
+    }
+  }, [videoState.status, videoState.error])
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -231,14 +264,25 @@ export function ImageResultCard({
           <div className="relative rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 group">
             {imageDetails ? (
               <>
-                {/* Normal image display with double-click to fullscreen */}
-                <img
-                  src={currentImageUrl || ''}
-                  alt="Generated"
-                  className={`w-full transition-all duration-300 cursor-pointer ${isBlurred ? 'blur-xl' : ''}`}
-                  onDoubleClick={handleDoubleClick}
-                  title="Double-click to view fullscreen"
-                />
+                {/* Video or Image display */}
+                {showVideo && videoState.videoUrl ? (
+                  <video
+                    src={videoState.videoUrl}
+                    controls
+                    autoPlay
+                    loop
+                    muted
+                    className="w-full"
+                  />
+                ) : (
+                  <img
+                    src={currentImageUrl || ''}
+                    alt="Generated"
+                    className={`w-full transition-all duration-300 cursor-pointer ${isBlurred ? 'blur-xl' : ''}`}
+                    onDoubleClick={handleDoubleClick}
+                    title="Double-click to view fullscreen"
+                  />
+                )}
 
                 {/* Floating Toolbar */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
@@ -269,6 +313,39 @@ export function ImageResultCard({
                       }`}
                     >
                       {isBlurred ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                    <div className="w-px h-5 bg-white/10" />
+                    {/* Generate Video */}
+                    <button
+                      type="button"
+                      onClick={
+                        videoState.status === 'success'
+                          ? () => setShowVideo(!showVideo)
+                          : handleGenerateVideo
+                      }
+                      disabled={
+                        videoState.status === 'generating' || videoState.status === 'polling'
+                      }
+                      title={
+                        videoState.status === 'generating' || videoState.status === 'polling'
+                          ? 'Generating video...'
+                          : videoState.status === 'success'
+                            ? showVideo
+                              ? 'Show image'
+                              : 'Show video'
+                            : 'Generate video'
+                      }
+                      className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
+                        videoState.status === 'success'
+                          ? 'text-green-400 bg-green-500/10'
+                          : 'text-white/70 hover:text-white hover:bg-white/10'
+                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      {videoState.status === 'generating' || videoState.status === 'polling' ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
+                      ) : (
+                        <Video className="w-5 h-5" />
+                      )}
                     </button>
                     <div className="w-px h-5 bg-white/10" />
                     {/* Download */}

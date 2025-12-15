@@ -16,6 +16,8 @@ import type {
   TranslateResponse,
   UpscaleRequest,
   UpscaleResponse,
+  VideoGenerateRequest,
+  VideoTaskResponse,
 } from '@z-image/shared'
 import { LLM_PROVIDER_CONFIGS } from '@z-image/shared'
 import { PROVIDER_CONFIGS, type ProviderType } from './constants'
@@ -511,6 +513,82 @@ export async function translatePrompt(prompt: string): Promise<ApiResponse<Trans
     }
 
     return { success: true, data: data as TranslateResponse }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    }
+  }
+}
+
+/**
+ * Create video generation task (Gitee only)
+ */
+export async function createVideoTask(
+  options: VideoGenerateRequest,
+  token: string
+): Promise<ApiResponse<{ taskId: string; status: string }>> {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'X-API-Key': token,
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/api/video/generate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(options),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      const errorInfo = parseErrorResponse(data)
+      return {
+        success: false,
+        error: getErrorMessage(errorInfo),
+        errorInfo,
+      }
+    }
+
+    return { success: true, data }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    }
+  }
+}
+
+/**
+ * Get video task status (Gitee only)
+ */
+export async function getVideoTaskStatus(
+  taskId: string,
+  token: string
+): Promise<ApiResponse<VideoTaskResponse>> {
+  const headers: HeadersInit = {
+    'X-API-Key': token,
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/api/video/status/${taskId}`, {
+      method: 'GET',
+      headers,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      const errorInfo = parseErrorResponse(data)
+      return {
+        success: false,
+        error: getErrorMessage(errorInfo),
+        errorInfo,
+      }
+    }
+
+    return { success: true, data }
   } catch (err) {
     return {
       success: false,

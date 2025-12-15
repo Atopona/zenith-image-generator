@@ -26,6 +26,7 @@ import {
   TRANSLATION_CONFIG,
   type TranslateRequest,
   type TranslateResponse,
+  type VideoGenerateRequest,
   validateDimensions,
   validatePrompt,
   validateScale,
@@ -45,6 +46,7 @@ import {
   timeout,
 } from './middleware'
 import { getProvider, hasProvider } from './providers'
+import { createVideoTask, getVideoTaskStatus } from './providers/gitee'
 import { callGradioApi, formatDimensions, formatDuration } from './utils'
 
 export interface AppConfig {
@@ -88,6 +90,8 @@ export function createApp(config: AppConfig = {}) {
   app.use('/upscale', timeout(120000))
   app.use('/optimize', timeout(60000)) // 60 seconds for LLM
   app.use('/translate', timeout(30000)) // 30 seconds for translation
+  app.use('/video/generate', timeout(30000)) // 30 seconds for video task creation
+  app.use('/video/status/*', timeout(30000)) // 30 seconds for status check
 
   // Apply body limit (50KB for most endpoints)
   app.use('/generate', bodyLimit(50 * 1024))
@@ -95,6 +99,7 @@ export function createApp(config: AppConfig = {}) {
   app.use('/upscale', bodyLimit(50 * 1024))
   app.use('/optimize', bodyLimit(50 * 1024))
   app.use('/translate', bodyLimit(20 * 1024)) // 20KB for translation
+  app.use('/video/generate', bodyLimit(50 * 1024))
 
   // Health check
   app.get('/', (c) => {
@@ -517,6 +522,69 @@ export function createApp(config: AppConfig = {}) {
           'Cache-Control': 'public, max-age=86400',
         },
       })
+    } catch (err) {
+      return sendError(c, err)
+    }
+  })
+
+  // Video generation - Create task
+  app.post('/video/generate', async (c) => {
+    let body: VideoGenerateRequest
+    try {
+      body = await c.req.json()
+    } catch {
+      return sendError(c, Errors.invalidParams('body', 'Invalid JSON body'))
+    }
+
+    const authToken = c.req.header('X-API-Key')
+
+    if (!authToken) {
+      return sendError(c, Errors.authRequired('Gitee AI'))
+    }
+
+    if (body.provider !== 'gitee') {
+      return c.json({ error: 'Use frontend direct call for HuggingFace' }, 400)
+    }
+
+    if (!body.imageUrl || !body.prompt) {
+      return sendError(c, Errors.invalidParams('body', 'imageUrl and prompt are required'))
+    }
+
+    const dimensionsValidation = validateDimensions(body.width, body.height)
+    if (!dimensionsValidation.valid) {
+      return sendError(
+        c,
+        Errors.invalidDimensions(dimensionsValidation.error || 'Invalid dimensions')
+      )
+    }
+
+    try {
+      const taskId = await createVideoTask(
+        body.imageUrl,
+        body.prompt,
+        body.width,
+        body.height,
+        authToken
+      )
+
+      return c.json({ taskId, status: 'pending' })
+    } catch (err) {
+      return sendError(c, err)
+    }
+  })
+
+  // Video generation - Query status
+  app.get('/video/status/:taskId', async (c) => {
+    const taskId = c.req.param('taskId')
+    const authToken = c.req.header('X-API-Key')
+
+    if (!authToken) {
+      return sendError(c, Errors.authRequired('Gitee AI'))
+    }
+
+    try {
+      const result = await getVideoTaskStatus(taskId, authToken)
+      return c.json(result)
     } catch (err) {
       return sendError(c, err)
     }

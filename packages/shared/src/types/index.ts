@@ -9,3 +9,5 @@ export * from './image'
 // LLM 类型
 export * from './llm'
 export * from './provider'
+// 视频类型
+export * from './video'
