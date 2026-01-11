@@ -1,4 +1,10 @@
-import { Errors, type ProviderType, validateDimensions, validatePrompt, validateSteps } from '@z-image/shared'
+import {
+  Errors,
+  type ProviderType,
+  validateDimensions,
+  validatePrompt,
+  validateSteps,
+} from '@z-image/shared'
 import type { ProviderGenerateRequest, ProviderGenerateResult } from '../providers/types'
 import type { OpenAIImageRequest, OpenAIImageResponse } from './types'
 
@@ -17,7 +23,10 @@ export function parseSize(size?: string): { width: number; height: number } {
   }
 }
 
-export function parseBearerToken(authHeader?: string): { providerHint?: ProviderType; token?: string } {
+export function parseBearerToken(authHeader?: string): {
+  providerHint?: ProviderType
+  token?: string
+} {
   if (!authHeader) return {}
   if (!authHeader.startsWith('Bearer ')) return {}
 

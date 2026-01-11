@@ -34,4 +34,3 @@ export interface OpenAIModelsListResponse {
   object: 'list'
   data: OpenAIModelInfo[]
 }
-

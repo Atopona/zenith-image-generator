@@ -101,7 +101,10 @@ export function registerOpenAIRoutes(app: Hono) {
     if (auth.providerHint && auth.providerHint !== provider) {
       return sendError(
         c,
-        Errors.invalidParams('Authorization', 'Token prefix does not match requested model provider')
+        Errors.invalidParams(
+          'Authorization',
+          'Token prefix does not match requested model provider'
+        )
       )
     }
 

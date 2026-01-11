@@ -143,4 +143,3 @@ describe('OpenAI-compatible routes', () => {
     expect(json.data.map((m) => m.id)).toContain('ms/flux-2')
   })
 })
-
