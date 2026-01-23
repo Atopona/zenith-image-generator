@@ -18,6 +18,7 @@ Authorization: Bearer <token>
 
 Provider token prefixes:
 
+- `Bearer a4f:<token>` -> A4F
 - `Bearer gitee:<token>` -> Gitee AI
 - `Bearer ms:<token>` -> ModelScope
 - `Bearer hf:<token>` -> HuggingFace (optional; you can also omit `hf:`)
@@ -42,6 +43,7 @@ Notes:
 - `n` is supported only when `n=1`
 - `response_format` is supported only when `response_format="url"`
 - Provider routing is based on the `model` prefix:
+  - `a4f/...` -> A4F
   - `gitee/...` -> Gitee
   - `ms/...` -> ModelScope
   - no prefix -> HuggingFace
@@ -73,6 +75,15 @@ Response:
 ```
 
 ### Examples
+
+A4F:
+
+```bash
+curl -X POST https://your-project.pages.dev/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer a4f:YOUR_TOKEN" \
+  -d '{"model":"a4f/provider-4/imagen-3.5","prompt":"a cat","size":"1024x1024","n":1,"response_format":"url"}'
+```
 
 Gitee:
 
@@ -122,6 +133,7 @@ Chat Completions endpoint (used by the web UI for prompt optimize/translate).
 Provider routing uses the `model` prefix:
 
 - `pollinations/<model>` -> Pollinations (default)
+- `a4f/<model>` -> A4F (requires `Bearer a4f:<token>`)
 - `gitee/<model>` -> Gitee AI (requires `Bearer gitee:<token>`)
 - `ms/<model>` -> ModelScope (requires `Bearer ms:<token>`)
 - `hf/<model>` -> HuggingFace (token optional; supports `Bearer hf:<token>` or no token)
@@ -154,4 +166,3 @@ Response:
   ]
 }
 ```
-

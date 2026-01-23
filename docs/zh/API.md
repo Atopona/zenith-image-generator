@@ -18,6 +18,7 @@ Authorization: Bearer <token>
 
 Provider token 前缀：
 
+- `Bearer a4f:<token>` -> A4F
 - `Bearer gitee:<token>` -> Gitee AI
 - `Bearer ms:<token>` -> ModelScope
 - `Bearer hf:<token>` -> HuggingFace（可选；也可不写 `hf:`）
@@ -42,6 +43,7 @@ Provider token 前缀：
 - 仅支持 `n=1`
 - 仅支持 `response_format="url"`
 - Provider 路由由 `model` 前缀决定：
+  - `a4f/...` -> A4F
   - `gitee/...` -> Gitee
   - `ms/...` -> ModelScope
   - 无前缀 -> HuggingFace
@@ -73,6 +75,15 @@ Provider token 前缀：
 ```
 
 示例：
+
+A4F：
+
+```bash
+curl -X POST https://your-project.pages.dev/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer a4f:YOUR_TOKEN" \
+  -d '{"model":"a4f/provider-4/imagen-3.5","prompt":"a cat","size":"1024x1024","n":1,"response_format":"url"}'
+```
 
 Gitee：
 
@@ -122,6 +133,7 @@ Chat Completions（网页端用于提示词优化/翻译）。
 Provider 路由由 `model` 前缀决定：
 
 - `pollinations/<model>` -> Pollinations（默认）
+- `a4f/<model>` -> A4F（需要 `Bearer a4f:<token>`）
 - `gitee/<model>` -> Gitee AI（需要 `Bearer gitee:<token>`）
 - `ms/<model>` -> ModelScope（需要 `Bearer ms:<token>`）
 - `hf/<model>` -> HuggingFace（token 可选；支持 `Bearer hf:<token>` 或不传）
@@ -154,4 +166,3 @@ Provider 路由由 `model` 前缀决定：
   ]
 }
 ```
-

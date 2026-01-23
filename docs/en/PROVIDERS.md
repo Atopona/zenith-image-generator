@@ -6,9 +6,39 @@ This document lists all supported AI providers and their available models.
 
 | Provider | Auth Required | Image Format | Models Count |
 |----------|---------------|--------------|--------------|
+| [A4F](#a4f) | Yes | PNG | 5 |
 | [Gitee AI](#gitee-ai) | Yes | PNG | 7 |
 | [HuggingFace](#huggingface) | Optional | WebP | 4 |
 | [ModelScope](#modelscope) | Yes | PNG | 5 |
+
+---
+
+## A4F
+
+OpenAI-compatible gateway provider. Model IDs must include a provider prefix (e.g. `provider-4/...`).
+
+| Field | Value |
+|-------|-------|
+| Auth Header | `Authorization: Bearer a4f:<token>` |
+| Auth Required | Yes |
+| Image Format | PNG |
+| Get API Key | [a4f.co](https://www.a4f.co) |
+| Docs | https://www.a4f.co/docs |
+
+### Models (tested / free-tier friendly)
+
+| Model ID | Display Name | Negative Prompt | Steps | Guidance Scale |
+|----------|--------------|-----------------|-------|----------------|
+| `provider-4/imagen-3.5` | Imagen 3.5 (provider-4) | No | - | - |
+| `provider-4/imagen-4` | Imagen 4 (provider-4) | No | - | - |
+| `provider-8/imagen-3` | Imagen 3 (provider-8) | No | - | - |
+| `provider-4/flux-schnell` | FLUX Schnell (provider-4) | No | - | - |
+| `provider-8/z-image` | Z-Image (provider-8) | No | - | - |
+
+Example `model` values for `/v1/images/generations`:
+
+- `a4f/provider-4/imagen-3.5`
+- `a4f/provider-8/z-image`
 
 ---
 
@@ -157,6 +187,21 @@ curl -X POST https://your-project.pages.dev/v1/images/generations \
     "size": "1024x1024",
     "steps": 24,
     "guidance_scale": 3.5,
+    "n": 1,
+    "response_format": "url"
+  }'
+```
+
+### A4F with Imagen 3.5
+
+```bash
+curl -X POST https://your-project.pages.dev/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer a4f:your-a4f-api-key" \
+  -d '{
+    "model": "a4f/provider-4/imagen-3.5",
+    "prompt": "a cute cat",
+    "size": "1024x1024",
     "n": 1,
     "response_format": "url"
   }'

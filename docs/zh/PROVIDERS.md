@@ -6,9 +6,39 @@
 
 | 供应商 | 需要认证 | 图片格式 | 模型数量 |
 |--------|----------|----------|----------|
+| [A4F](#a4f) | 是 | PNG | 5 |
 | [Gitee AI](#gitee-ai) | 是 | PNG | 7 |
 | [HuggingFace](#huggingface) | 可选 | WebP | 4 |
 | [ModelScope](#modelscope) | 是 | PNG | 5 |
+
+---
+
+## A4F
+
+OpenAI 兼容的网关服务商。模型 ID 必须带 provider 前缀（例如 `provider-4/...`）。
+
+| 字段 | 值 |
+|------|-----|
+| 认证请求头 | `Authorization: Bearer a4f:<token>` |
+| 需要认证 | 是 |
+| 图片格式 | PNG |
+| 获取 API Key | [a4f.co](https://www.a4f.co) |
+| 官方文档 | https://www.a4f.co/docs |
+
+### 模型列表（已验证 / 免费层友好）
+
+| 模型 ID | 显示名称 | 负面提示词 | 步数范围 | 引导比例 |
+|---------|----------|------------|----------|----------|
+| `provider-4/imagen-3.5` | Imagen 3.5（provider-4） | 不支持 | - | - |
+| `provider-4/imagen-4` | Imagen 4（provider-4） | 不支持 | - | - |
+| `provider-8/imagen-3` | Imagen 3（provider-8） | 不支持 | - | - |
+| `provider-4/flux-schnell` | FLUX Schnell（provider-4） | 不支持 | - | - |
+| `provider-8/z-image` | Z-Image（provider-8） | 不支持 | - | - |
+
+在 `/v1/images/generations` 的 `model` 示例：
+
+- `a4f/provider-4/imagen-3.5`
+- `a4f/provider-8/z-image`
 
 ---
 
@@ -157,6 +187,21 @@ curl -X POST https://your-project.pages.dev/v1/images/generations \
     "size": "1024x1024",
     "steps": 24,
     "guidance_scale": 3.5,
+    "n": 1,
+    "response_format": "url"
+  }'
+```
+
+### A4F + Imagen 3.5
+
+```bash
+curl -X POST https://your-project.pages.dev/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer a4f:your-a4f-api-key" \
+  -d '{
+    "model": "a4f/provider-4/imagen-3.5",
+    "prompt": "一只可爱的猫",
+    "size": "1024x1024",
     "n": 1,
     "response_format": "url"
   }'
