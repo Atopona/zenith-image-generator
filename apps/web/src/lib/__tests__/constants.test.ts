@@ -139,6 +139,12 @@ describe('PROVIDER_OPTIONS', () => {
     expect(ms!.requiresAuth).toBe(true)
   })
 
+  it('should have a4f as a provider with auth required', () => {
+    const a4f = PROVIDER_OPTIONS.find((p) => p.value === 'a4f')
+    expect(a4f).toBeDefined()
+    expect(a4f!.requiresAuth).toBe(true)
+  })
+
   it('should have labels for all providers', () => {
     for (const provider of PROVIDER_OPTIONS) {
       expect(provider.label).toBeTruthy()
@@ -161,6 +167,11 @@ describe('getDefaultModel', () => {
 
   it('should return default model for modelscope', () => {
     const model = getDefaultModel('modelscope')
+    expect(model).toBeTruthy()
+  })
+
+  it('should return default model for a4f', () => {
+    const model = getDefaultModel('a4f')
     expect(model).toBeTruthy()
   })
 

@@ -16,6 +16,13 @@ export const HF_SPACES = {
 
 /** Provider configuration map */
 export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
+  a4f: {
+    id: 'a4f',
+    name: 'A4F',
+    requiresAuth: true,
+    authHeader: 'Authorization',
+    baseUrl: 'https://api.a4f.co/v1',
+  },
   gitee: {
     id: 'gitee',
     name: 'Gitee AI',

@@ -66,6 +66,7 @@ export function saveSettings(settings: Record<string, unknown>) {
 // Provider options for UI
 export const PROVIDER_OPTIONS: { value: ProviderType; label: string; requiresAuth: boolean }[] = [
   { value: 'huggingface', label: 'HuggingFace', requiresAuth: false },
+  { value: 'a4f', label: 'A4F', requiresAuth: true },
   { value: 'gitee', label: 'Gitee AI', requiresAuth: true },
   { value: 'modelscope', label: 'ModelScope', requiresAuth: true },
 ]

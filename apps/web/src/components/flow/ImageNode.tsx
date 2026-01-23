@@ -45,14 +45,22 @@ async function generateImageApiSingle(
             ? `gitee:${token}`
             : provider === 'modelscope'
               ? `ms:${token}`
-              : token
+              : provider === 'a4f'
+                ? `a4f:${token}`
+                : token
         }`,
       }),
     },
     body: JSON.stringify({
       prompt,
       model:
-        provider === 'gitee' ? `gitee/${model}` : provider === 'modelscope' ? `ms/${model}` : model,
+        provider === 'gitee'
+          ? `gitee/${model}`
+          : provider === 'modelscope'
+            ? `ms/${model}`
+            : provider === 'a4f'
+              ? `a4f/${model}`
+              : model,
       size: `${width}x${height}`,
       steps: 9,
       seed,

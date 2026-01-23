@@ -29,6 +29,7 @@ function listModels(): OpenAIModelsListResponse {
   const created = 1700000000
   const giteeModels = getModelsByProvider('gitee').map((m) => m.id)
   const modelscopeModels = getModelsByProvider('modelscope').map((m) => m.id)
+  const a4fModels = getModelsByProvider('a4f').map((m) => m.id)
 
   return {
     object: 'list',
@@ -59,6 +60,12 @@ function listModels(): OpenAIModelsListResponse {
           entries.push({ id: 'ms/flux-1', owned_by: 'modelscope' })
         return entries.map((e) => ({ ...e, object: 'model' as const, created }))
       }),
+      ...a4fModels.map((id) => ({
+        id: `a4f/${id}`,
+        object: 'model' as const,
+        created,
+        owned_by: 'a4f',
+      })),
     ],
   }
 }

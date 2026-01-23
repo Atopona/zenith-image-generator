@@ -31,6 +31,10 @@ function parseChatBearerToken(authHeader?: string): {
     const token = raw.slice('deepseek:'.length).trim()
     return token ? { providerHint: 'deepseek', token } : {}
   }
+  if (raw.startsWith('a4f:')) {
+    const token = raw.slice('a4f:'.length).trim()
+    return token ? { providerHint: 'a4f', token } : {}
+  }
 
   return { token: raw }
 }
@@ -67,6 +71,7 @@ function resolveChatModel(model: string): {
       model: trimmed.slice('pollinations/'.length),
       forceAnonymous: true,
     }
+  if (trimmed.startsWith('a4f/')) return { channelId: 'a4f', model: trimmed.slice('a4f/'.length) }
 
   // Default: treat as Pollinations model id.
   return { channelId: 'huggingface', model: trimmed, forceAnonymous: true }

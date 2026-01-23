@@ -1,11 +1,13 @@
 import { registerChannel } from '../core/channel-registry'
 import type { EnvLike } from '../core/types'
+import { a4fChannel } from './a4f'
 import { createDeepseekChannel, loadCustomChannels } from './custom'
 import { giteeChannel } from './gitee'
 import { huggingfaceChannel } from './huggingface'
 import { modelscopeChannel } from './modelscope'
 
 const builtinChannels = [
+  a4fChannel,
   modelscopeChannel,
   giteeChannel,
   huggingfaceChannel,
@@ -41,6 +43,7 @@ export function ensureCustomChannelsInitialized(env?: EnvLike): void {
 ensureCustomChannelsInitialized()
 
 export * from '../core/channel-registry'
+export * from './a4f'
 export * from './custom'
 export * from './gitee'
 export * from './huggingface'

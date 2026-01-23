@@ -109,6 +109,7 @@ export const openai = new OpenAIClient(API_URL)
 export function buildImageTokenWithPrefix(provider: ProviderType, token: string): string {
   if (provider === 'gitee') return `gitee:${token}`
   if (provider === 'modelscope') return `ms:${token}`
+  if (provider === 'a4f') return `a4f:${token}`
   // huggingface: no prefix (default)
   return token
 }
@@ -116,6 +117,7 @@ export function buildImageTokenWithPrefix(provider: ProviderType, token: string)
 export function getFullImageModelId(provider: ProviderType, modelId: string): string {
   if (provider === 'gitee') return `gitee/${modelId}`
   if (provider === 'modelscope') return `ms/${modelId}`
+  if (provider === 'a4f') return `a4f/${modelId}`
   return modelId
 }
 

@@ -35,5 +35,10 @@ export function resolveModel(modelParam?: string): ResolvedModel {
     return { provider: 'modelscope', model: MODELSCOPE_MODEL_ALIASES[raw] || raw }
   }
 
+  if (model.startsWith('a4f/')) {
+    const raw = model.slice('a4f/'.length)
+    return { provider: 'a4f', model: raw }
+  }
+
   return { provider: 'huggingface', model: HF_MODELS.has(model) ? model : DEFAULT_HF_MODEL }
 }

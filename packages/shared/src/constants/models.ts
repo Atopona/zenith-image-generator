@@ -6,6 +6,27 @@ import type { ModelConfig, ProviderType } from '../types/provider'
 
 /** All model configurations */
 export const MODEL_CONFIGS: ModelConfig[] = [
+  // A4F models (OpenAI-compatible)
+  {
+    id: 'gpt-image-1',
+    name: 'GPT Image 1',
+    provider: 'a4f',
+    features: {
+      negativePrompt: false,
+      steps: { min: 1, max: 1, default: 1 },
+      seed: false,
+    },
+  },
+  {
+    id: 'dall-e-3',
+    name: 'DALL-E 3',
+    provider: 'a4f',
+    features: {
+      negativePrompt: false,
+      steps: { min: 1, max: 1, default: 1 },
+      seed: false,
+    },
+  },
   // Gitee AI models
   {
     id: 'z-image-turbo',

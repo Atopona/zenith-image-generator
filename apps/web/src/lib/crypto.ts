@@ -4,6 +4,7 @@ import type { ProviderType } from './constants'
 export type TokenProvider = ProviderType | 'deepseek'
 
 const TOKEN_STORAGE_KEYS: Record<TokenProvider, string> = {
+  a4f: 'a4fToken',
   gitee: 'giteeToken',
   huggingface: 'hfToken',
   modelscope: 'msToken',
@@ -77,6 +78,7 @@ export async function decryptTokenFromStore(provider: TokenProvider): Promise<st
 
 export async function loadAllTokens(): Promise<Record<TokenProvider, string>> {
   const tokens: Record<TokenProvider, string> = {
+    a4f: '',
     gitee: '',
     huggingface: '',
     modelscope: '',
@@ -105,6 +107,7 @@ export async function loadTokensArray(provider: TokenProvider): Promise<string[]
  */
 export async function loadAllTokensArrays(): Promise<Record<TokenProvider, string[]>> {
   const tokens: Record<TokenProvider, string[]> = {
+    a4f: [],
     gitee: [],
     huggingface: [],
     modelscope: [],

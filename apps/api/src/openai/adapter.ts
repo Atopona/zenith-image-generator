@@ -45,6 +45,10 @@ export function parseBearerToken(authHeader?: string): {
     const token = raw.slice('hf:'.length).trim()
     return token ? { providerHint: 'huggingface', token } : {}
   }
+  if (raw.startsWith('a4f:')) {
+    const token = raw.slice('a4f:'.length).trim()
+    return token ? { providerHint: 'a4f', token } : {}
+  }
 
   return { token: raw }
 }
