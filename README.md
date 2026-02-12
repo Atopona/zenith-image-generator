@@ -1,6 +1,6 @@
 <div align="center">
 
-# Zenith Image Generator
+# Zenith Image Generator1
 
 **Modern Text-to-Image Generation Web App**
 
