@@ -343,11 +343,13 @@ export async function handleChatCompletion(c: Context) {
         { allowAnonymous }
       )
 
-      const isEdit = sourceImageUrl && (resolvedModel === 'omni-edit' || resolvedModel === 'omni-upscale' || resolvedModel === 'omni-dewatermark')
+      const isEdit =
+        sourceImageUrl &&
+        (resolvedModel === 'omni-edit' ||
+          resolvedModel === 'omni-upscale' ||
+          resolvedModel === 'omni-dewatermark')
       const content = isEdit
-        ? `🎨 图片编辑成功\n\n` +
-          `提示词: ${prompt}\n\n` +
-          `![${prompt}](${result.url})`
+        ? `🎨 图片编辑成功\n\n` + `提示词: ${prompt}\n\n` + `![${prompt}](${result.url})`
         : `🎨 图片生成成功\n\n` +
           `提示词: ${prompt}\n` +
           `尺寸: ${width}x${height}\n\n` +

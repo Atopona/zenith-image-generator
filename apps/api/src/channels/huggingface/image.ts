@@ -73,19 +73,12 @@ function extractImageUrlFromHtml(html: string): string | undefined {
   const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i)
   if (imgMatch?.[1]) return imgMatch[1]
   // Fallback: match any https URL ending with common image extensions
-  const urlMatch = html.match(
-    /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>]*)?/i
-  )
+  const urlMatch = html.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>]*)?/i)
   return urlMatch?.[0]
 }
 
 /** Set of omni-image model IDs that return HTML instead of direct image data */
-const OMNI_IMAGE_MODELS = new Set([
-  'omni-image',
-  'omni-edit',
-  'omni-upscale',
-  'omni-dewatermark',
-])
+const OMNI_IMAGE_MODELS = new Set(['omni-image', 'omni-edit', 'omni-upscale', 'omni-dewatermark'])
 
 const MODEL_CONFIGS: Record<
   string,
@@ -145,7 +138,8 @@ export const huggingfaceImage: ImageCapability = {
     const config = MODEL_CONFIGS[modelId] || MODEL_CONFIGS['z-image-turbo']
 
     // Validate source image for editing models
-    const needsSourceImage = modelId === 'omni-edit' || modelId === 'omni-upscale' || modelId === 'omni-dewatermark'
+    const needsSourceImage =
+      modelId === 'omni-edit' || modelId === 'omni-upscale' || modelId === 'omni-dewatermark'
     if (needsSourceImage && !request.sourceImageUrl) {
       throw Errors.invalidParams(
         'image',
