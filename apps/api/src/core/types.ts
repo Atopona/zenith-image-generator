@@ -48,6 +48,10 @@ export interface ImageRequest {
   guidanceScale?: number
   seed?: number
   loras?: unknown
+  /** Source image URL for image editing operations (e.g. omni-image edit) */
+  sourceImageUrl?: string
+  /** Aspect ratio hint (e.g. "1:1", "16:9") — used by providers that accept ratio instead of w/h */
+  aspectRatio?: string
 }
 
 export interface ImageResult {

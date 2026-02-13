@@ -39,6 +39,8 @@ export interface OpenAIImageRequest {
   quality?: 'standard' | 'hd'
   response_format?: 'url' | 'b64_json'
   negative_prompt?: string
+  /** Source image URL for image editing (omni-edit, omni-upscale, omni-dewatermark) */
+  image?: string
   // Extensions / provider-compat aliases
   // - Gitee AI uses `num_inference_steps` instead of `steps`
   // - Some providers use `cfg_scale` instead of `guidance_scale`

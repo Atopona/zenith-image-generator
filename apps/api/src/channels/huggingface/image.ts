@@ -21,7 +21,9 @@ function parseSeedFromResponse(modelId: string, result: unknown[], fallbackSeed:
 }
 
 function getCandidateBaseUrls(modelId: string): string[] {
-  const primary = HF_SPACES[modelId as keyof typeof HF_SPACES] || HF_SPACES['z-image-turbo']
+  // All omni-* models share the same Space
+  const spaceKey = modelId.startsWith('omni-') ? 'omni-image' : modelId
+  const primary = HF_SPACES[spaceKey as keyof typeof HF_SPACES] || HF_SPACES['z-image-turbo']
   const fallbackMap: Record<string, string[]> = {
     'z-image-turbo': ['https://mrfakename-z-image-turbo.hf.space'],
     'z-image': ['https://mrfakename-z-image.hf.space'],
@@ -41,6 +43,49 @@ function isNotFoundProviderError(err: unknown): boolean {
   }
   return false
 }
+
+/** Size string to aspect ratio for omni-image text-to-image */
+function sizeToAspectRatio(width: number, height: number): string {
+  const ratio = width / height
+  if (Math.abs(ratio - 16 / 9) < 0.1) return '16:9'
+  if (Math.abs(ratio - 9 / 16) < 0.1) return '9:16'
+  if (Math.abs(ratio - 4 / 3) < 0.1) return '4:3'
+  if (Math.abs(ratio - 3 / 4) < 0.1) return '3:4'
+  return '1:1'
+}
+
+/** Build a Gradio FileData object from a public image URL */
+function makeGradioFileData(url: string): Record<string, unknown> {
+  return {
+    path: url,
+    url,
+    orig_name: 'input.jpg',
+    mime_type: 'image/jpeg',
+    size: null,
+    is_stream: false,
+    meta: { _type: 'gradio.FileData' },
+  }
+}
+
+/** Extract the first image URL from an HTML string returned by omni-image */
+function extractImageUrlFromHtml(html: string): string | undefined {
+  // Match <img ... src="..."> pattern
+  const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+  if (imgMatch?.[1]) return imgMatch[1]
+  // Fallback: match any https URL ending with common image extensions
+  const urlMatch = html.match(
+    /https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>]*)?/i
+  )
+  return urlMatch?.[0]
+}
+
+/** Set of omni-image model IDs that return HTML instead of direct image data */
+const OMNI_IMAGE_MODELS = new Set([
+  'omni-image',
+  'omni-edit',
+  'omni-upscale',
+  'omni-dewatermark',
+])
 
 const MODEL_CONFIGS: Record<
   string,
@@ -75,6 +120,22 @@ const MODEL_CONFIGS: Record<
       false,
     ],
   },
+  'omni-image': {
+    endpoint: 'text_to_image_interface',
+    buildData: (r) => [r.prompt, r.aspectRatio || sizeToAspectRatio(r.width, r.height)],
+  },
+  'omni-edit': {
+    endpoint: 'edit_image_interface',
+    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || ''), r.prompt],
+  },
+  'omni-upscale': {
+    endpoint: 'image_upscale_interface',
+    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || '')],
+  },
+  'omni-dewatermark': {
+    endpoint: 'watermark_removal_interface',
+    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || ''), false],
+  },
 }
 
 export const huggingfaceImage: ImageCapability = {
@@ -82,6 +143,15 @@ export const huggingfaceImage: ImageCapability = {
     const seed = request.seed ?? Math.floor(Math.random() * MAX_INT32)
     const modelId = request.model || 'z-image-turbo'
     const config = MODEL_CONFIGS[modelId] || MODEL_CONFIGS['z-image-turbo']
+
+    // Validate source image for editing models
+    const needsSourceImage = modelId === 'omni-edit' || modelId === 'omni-upscale' || modelId === 'omni-dewatermark'
+    if (needsSourceImage && !request.sourceImageUrl) {
+      throw Errors.invalidParams(
+        'image',
+        'Source image URL is required for image editing. Use --image <url> in chat or "image" field in API.'
+      )
+    }
 
     let lastErr: unknown
     let imageUrl: string | undefined
@@ -96,10 +166,22 @@ export const huggingfaceImage: ImageCapability = {
           token || undefined
         )
         const result = data as Array<{ url?: string } | number | string>
-        const first = result[0]
-        const rawUrl =
-          typeof first === 'string' ? first : (first as { url?: string } | null | undefined)?.url
-        imageUrl = rawUrl ? normalizeImageUrl(baseUrl, rawUrl) : undefined
+
+        // Omni-image models return HTML containing the image URL
+        if (OMNI_IMAGE_MODELS.has(modelId)) {
+          const html = typeof result[0] === 'string' ? result[0] : ''
+          // Check status text (result[1]) for errors
+          const status = typeof result[1] === 'string' ? result[1] : ''
+          if (status && (status.includes('Rate limit') || status.includes('error'))) {
+            throw Errors.providerError('HuggingFace', status)
+          }
+          imageUrl = extractImageUrlFromHtml(html)
+        } else {
+          const first = result[0]
+          const rawUrl =
+            typeof first === 'string' ? first : (first as { url?: string } | null | undefined)?.url
+          imageUrl = rawUrl ? normalizeImageUrl(baseUrl, rawUrl) : undefined
+        }
         if (!imageUrl) throw Errors.generationFailed('HuggingFace', 'No image returned')
         break
       } catch (err) {

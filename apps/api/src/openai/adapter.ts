@@ -10,7 +10,14 @@ import type { OpenAIImageRequest, OpenAIImageResponse } from './types'
 
 export type OpenAIConvertedRequest = Pick<
   ImageRequest,
-  'prompt' | 'negativePrompt' | 'width' | 'height' | 'steps' | 'seed' | 'guidanceScale'
+  | 'prompt'
+  | 'negativePrompt'
+  | 'width'
+  | 'height'
+  | 'steps'
+  | 'seed'
+  | 'guidanceScale'
+  | 'sourceImageUrl'
 >
 
 export function parseSize(size?: string): { width: number; height: number } {
@@ -81,6 +88,7 @@ export function convertRequest(req: OpenAIImageRequest): OpenAIConvertedRequest 
     steps,
     seed: req.seed,
     guidanceScale: req.guidance_scale ?? req.cfg_scale,
+    sourceImageUrl: req.image,
   }
 }
 

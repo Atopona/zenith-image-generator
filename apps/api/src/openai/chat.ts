@@ -105,14 +105,16 @@ function tryResolveImageModel(model: string): { channelId: string; model: string
   return { channelId: resolved.provider, model: resolved.model }
 }
 
-/** Extract --size and --negative from user prompt, return cleaned prompt + params */
+/** Extract --size, --negative, and --image from user prompt, return cleaned prompt + params */
 function parseImageParams(raw: string): {
   prompt: string
   size?: string
   negativePrompt?: string
+  sourceImageUrl?: string
 } {
   let size: string | undefined
   let negativePrompt: string | undefined
+  let sourceImageUrl: string | undefined
 
   let text = raw.replace(/--size\s+(\d+x\d+)/i, (_, s) => {
     size = s
@@ -126,8 +128,12 @@ function parseImageParams(raw: string): {
     negativePrompt = n
     return ''
   })
+  text = text.replace(/--image\s+(\S+)/i, (_, u) => {
+    sourceImageUrl = u
+    return ''
+  })
 
-  return { prompt: text.trim(), size, negativePrompt }
+  return { prompt: text.trim(), size, negativePrompt, sourceImageUrl }
 }
 
 // -------- LLM Chat helpers --------
@@ -310,7 +316,7 @@ export async function handleChatCompletion(c: Context) {
       return sendError(c, Errors.authRequired(channel.name))
     }
 
-    const { prompt, size, negativePrompt } = parseImageParams(imagePrompt)
+    const { prompt, size, negativePrompt, sourceImageUrl } = parseImageParams(imagePrompt)
     if (!prompt) {
       return sendError(c, Errors.invalidPrompt('Image prompt is required'))
     }
@@ -324,17 +330,28 @@ export async function handleChatCompletion(c: Context) {
         tokens,
         (token) =>
           imageCapability.generate(
-            { prompt, negativePrompt, width, height, model: resolvedModel },
+            {
+              prompt,
+              negativePrompt,
+              width,
+              height,
+              model: resolvedModel,
+              sourceImageUrl,
+            },
             token
           ),
         { allowAnonymous }
       )
 
-      const content =
-        `🎨 图片生成成功\n\n` +
-        `提示词: ${prompt}\n` +
-        `尺寸: ${width}x${height}\n\n` +
-        `![${prompt}](${result.url})`
+      const isEdit = sourceImageUrl && (resolvedModel === 'omni-edit' || resolvedModel === 'omni-upscale' || resolvedModel === 'omni-dewatermark')
+      const content = isEdit
+        ? `🎨 图片编辑成功\n\n` +
+          `提示词: ${prompt}\n\n` +
+          `![${prompt}](${result.url})`
+        : `🎨 图片生成成功\n\n` +
+          `提示词: ${prompt}\n` +
+          `尺寸: ${width}x${height}\n\n` +
+          `![${prompt}](${result.url})`
       return sendChatResult(c, body.model, content, body.stream)
     } catch (err) {
       return sendError(c, err)

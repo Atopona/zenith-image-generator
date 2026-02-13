@@ -12,6 +12,10 @@ const HF_MODELS = new Set([
   'ovis-image',
   'flux-1-schnell',
   'z-image',
+  'omni-image',
+  'omni-edit',
+  'omni-upscale',
+  'omni-dewatermark',
 ])
 
 const GITEE_MODEL_ALIASES: Record<string, string> = {

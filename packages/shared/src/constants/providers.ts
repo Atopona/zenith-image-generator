@@ -12,6 +12,7 @@ export const HF_SPACES = {
   'ovis-image': 'https://aidc-ai-ovis-image-7b.hf.space',
   'flux-1-schnell': 'https://black-forest-labs-flux-1-schnell.hf.space',
   'z-image': 'https://mrfakename-z-image.hf.space',
+  'omni-image': 'https://selfit-camera-omni-image-editor.hf.space',
   upscaler: 'https://tuan2308-upscaler.hf.space',
 } as const
 
