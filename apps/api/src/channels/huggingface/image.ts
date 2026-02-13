@@ -1,7 +1,7 @@
 import { ApiError, ApiErrorCode, Errors, HF_SPACES } from '@z-image/shared'
 import { MAX_INT32 } from '../../constants'
 import type { ImageCapability, ImageRequest, ImageResult } from '../../core/types'
-import { callGradioApi } from '../../utils'
+import { callGradioApi, uploadToGradio } from '../../utils'
 
 function normalizeImageUrl(baseUrl: string, url: string): string {
   try {
@@ -54,11 +54,11 @@ function sizeToAspectRatio(width: number, height: number): string {
   return '1:1'
 }
 
-/** Build a Gradio FileData object from a public image URL */
-function makeGradioFileData(url: string): Record<string, unknown> {
+/** Build a Gradio FileData object from a server-side uploaded path */
+function makeGradioFileData(serverPath: string): Record<string, unknown> {
   return {
-    path: url,
-    url,
+    path: serverPath,
+    url: null,
     orig_name: 'input.jpg',
     mime_type: 'image/jpeg',
     size: null,
@@ -119,17 +119,20 @@ const MODEL_CONFIGS: Record<
   },
   'omni-edit': {
     endpoint: 'edit_image_interface',
-    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || ''), r.prompt],
+    buildData: (r) => [null /* placeholder for uploaded FileData */, r.prompt],
   },
   'omni-upscale': {
     endpoint: 'image_upscale_interface',
-    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || '')],
+    buildData: (_r) => [null /* placeholder for uploaded FileData */],
   },
   'omni-dewatermark': {
     endpoint: 'watermark_removal_interface',
-    buildData: (r) => [makeGradioFileData(r.sourceImageUrl || ''), false],
+    buildData: (_r) => [null /* placeholder for uploaded FileData */, false],
   },
 }
+
+/** Models that require uploading a source image before calling the API */
+const NEEDS_UPLOAD = new Set(['omni-edit', 'omni-upscale', 'omni-dewatermark'])
 
 export const huggingfaceImage: ImageCapability = {
   async generate(request: ImageRequest, token?: string | null): Promise<ImageResult> {
@@ -153,12 +156,19 @@ export const huggingfaceImage: ImageCapability = {
 
     for (const baseUrl of getCandidateBaseUrls(modelId)) {
       try {
-        data = await callGradioApi(
-          baseUrl,
-          config.endpoint,
-          config.buildData(request, seed),
-          token || undefined
-        )
+        // Upload source image for editing models
+        let callData = config.buildData(request, seed)
+        if (NEEDS_UPLOAD.has(modelId) && request.sourceImageUrl) {
+          const serverPath = await uploadToGradio(
+            baseUrl,
+            request.sourceImageUrl,
+            token || undefined
+          )
+          // Replace the null placeholder (first element) with the uploaded FileData
+          callData = callData.map((v) => (v === null ? makeGradioFileData(serverPath) : v))
+        }
+
+        data = await callGradioApi(baseUrl, config.endpoint, callData, token || undefined)
         const result = data as Array<{ url?: string } | number | string>
 
         // Omni-image models return HTML containing the image URL

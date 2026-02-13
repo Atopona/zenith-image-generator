@@ -92,6 +92,70 @@ export function extractCompleteEventData(sseStream: string): unknown {
 }
 
 /**
+ * Upload a file to a Gradio Space and return the server-side path.
+ * Accepts either a public URL or a base64 data-URI (data:image/...;base64,...).
+ */
+export async function uploadToGradio(
+  baseUrl: string,
+  imageSource: string,
+  hfToken?: string
+): Promise<string> {
+  let blob: Blob
+  let filename = 'input.jpg'
+
+  if (imageSource.startsWith('data:')) {
+    // base64 data URI → Blob
+    const match = imageSource.match(/^data:([^;]+);base64,(.+)$/)
+    if (!match) throw Errors.invalidParams('image', 'Invalid base64 data URI')
+    const mime = match[1]
+    const b64 = match[2]
+    const binary = atob(b64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    blob = new Blob([bytes], { type: mime })
+    const ext = mime.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
+    filename = `input.${ext}`
+  } else {
+    // Public URL → fetch then re-upload
+    const resp = await fetch(imageSource)
+    if (!resp.ok) {
+      throw Errors.invalidParams('image', `Failed to fetch source image: ${resp.status}`)
+    }
+    blob = await resp.blob()
+    const urlPath = new URL(imageSource).pathname
+    const lastSegment = urlPath.split('/').pop()
+    if (lastSegment?.includes('.')) filename = lastSegment
+  }
+
+  const form = new FormData()
+  form.append('files', blob, filename)
+
+  const headers: Record<string, string> = {}
+  if (hfToken) headers.Authorization = `Bearer ${hfToken}`
+
+  const uploadUrl = `${baseUrl}/gradio_api/upload?upload_id=${Math.random().toString(36).slice(2)}`
+  const uploadResp = await fetch(uploadUrl, {
+    method: 'POST',
+    headers,
+    body: form,
+  })
+
+  if (!uploadResp.ok) {
+    const errText = await uploadResp.text().catch(() => '')
+    throw Errors.providerError(
+      PROVIDER_NAME,
+      `File upload failed (${uploadResp.status}): ${errText.slice(0, 200)}`
+    )
+  }
+
+  const paths = (await uploadResp.json()) as string[]
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw Errors.providerError(PROVIDER_NAME, 'Upload returned no file paths')
+  }
+  return paths[0]
+}
+
+/**
  * Call Gradio API with queue mechanism
  */
 export async function callGradioApi(
