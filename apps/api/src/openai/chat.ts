@@ -50,12 +50,20 @@ function parseChatBearerToken(authHeader?: string): {
 
 const IMAGE_MODEL_PREFIX = 'image/'
 
-function isImageModel(model: string): boolean {
-  return model.trim().startsWith(IMAGE_MODEL_PREFIX)
-}
+/**
+ * Try to resolve a model as an image model for chat-based image generation.
+ * Supports both explicit `image/` prefix and bare image model names.
+ *
+ * Returns null if the model is not an image model (i.e. the resolved channel
+ * has no image capability), so the caller can fall through to normal LLM chat.
+ */
+function tryResolveImageModel(model: string): { channelId: string; model: string } | null {
+  const trimmed = model.trim()
 
-function resolveImageModelForChat(model: string): { channelId: string; model: string } {
-  const inner = model.trim().slice(IMAGE_MODEL_PREFIX.length)
+  // Strip explicit image/ prefix if present
+  const inner = trimmed.startsWith(IMAGE_MODEL_PREFIX)
+    ? trimmed.slice(IMAGE_MODEL_PREFIX.length)
+    : trimmed
 
   // Support custom/ prefix
   if (inner.startsWith('custom/')) {
@@ -64,11 +72,37 @@ function resolveImageModelForChat(model: string): { channelId: string; model: st
     if (firstSlash > 0) {
       const channelId = rest.slice(0, firstSlash).trim()
       const m = rest.slice(firstSlash + 1).trim()
-      if (channelId) return { channelId, model: m }
+      if (channelId) {
+        // Only treat as image if the channel actually has image capability
+        const ch = getImageChannel(channelId)
+        if (ch) return { channelId, model: m }
+        // If explicit image/ prefix was used, still treat as image (will error later)
+        if (trimmed.startsWith(IMAGE_MODEL_PREFIX)) return { channelId, model: m }
+      }
     }
+    return null
   }
 
   const resolved = resolveModel(inner || undefined)
+  const imageCapability = getImageChannel(resolved.provider)
+
+  if (trimmed.startsWith(IMAGE_MODEL_PREFIX)) {
+    // Explicit image/ prefix — always treat as image request
+    return { channelId: resolved.provider, model: resolved.model }
+  }
+
+  if (!imageCapability) return null
+
+  // For channels that have BOTH image and LLM (e.g. gitee), only auto-detect
+  // if the model name matches a known image model (not a LLM model).
+  const channel = getChannel(resolved.provider)
+  if (channel?.llm) {
+    // Channel has LLM too — check if the model is specifically an image model
+    const isKnownImageModel = channel.config.imageModels?.some((m) => m.id === resolved.model)
+    return isKnownImageModel ? { channelId: resolved.provider, model: resolved.model } : null
+  }
+
+  // Channel only has image capability — auto-detect
   return { channelId: resolved.provider, model: resolved.model }
 }
 
@@ -199,8 +233,9 @@ export async function handleChatCompletion(c: Context) {
   const auth = parseChatBearerToken(c.req.header('Authorization'))
 
   // -------- Image generation via Chat --------
-  if (isImageModel(body.model)) {
-    const { channelId, model: imageModel } = resolveImageModelForChat(body.model)
+  const imageResolved = tryResolveImageModel(body.model)
+  if (imageResolved) {
+    const { channelId, model: imageModel } = imageResolved
 
     if (auth.providerHint && auth.providerHint !== channelId) {
       return sendError(
