@@ -1,6 +1,6 @@
+import type { OpenAIChatContentPart } from '@z-image/shared'
 import { Errors } from '@z-image/shared'
 import type { Context } from 'hono'
-import type { OpenAIChatContentPart, OpenAIChatMessage } from '@z-image/shared'
 import {
   ensureCustomChannelsInitialized,
   getChannel,
@@ -24,14 +24,11 @@ function getTextContent(content: string | OpenAIChatContentPart[]): string {
 }
 
 /** Extract the first image URL from multimodal content parts */
-function getImageUrlFromContent(
-  content: string | OpenAIChatContentPart[],
-): string | undefined {
+function getImageUrlFromContent(content: string | OpenAIChatContentPart[]): string | undefined {
   if (typeof content === 'string') return undefined
   if (!Array.isArray(content)) return undefined
   const imgPart = content.find(
-    (p): p is { type: 'image_url'; image_url: { url: string } } =>
-      p.type === 'image_url',
+    (p): p is { type: 'image_url'; image_url: { url: string } } => p.type === 'image_url'
   )
   return imgPart?.image_url?.url
 }
@@ -352,8 +349,12 @@ export async function handleChatCompletion(c: Context) {
       return sendError(c, Errors.authRequired(channel.name))
     }
 
-    const { prompt, size, negativePrompt, sourceImageUrl: promptImageUrl } =
-      parseImageParams(imagePrompt)
+    const {
+      prompt,
+      size,
+      negativePrompt,
+      sourceImageUrl: promptImageUrl,
+    } = parseImageParams(imagePrompt)
     if (!prompt) {
       return sendError(c, Errors.invalidPrompt('Image prompt is required'))
     }
@@ -390,7 +391,7 @@ export async function handleChatCompletion(c: Context) {
           resolvedModel === 'omni-upscale' ||
           resolvedModel === 'omni-dewatermark')
       const content = isEdit
-        ? `🎨 图片编辑成功\n\n` + `提示词: ${prompt}\n\n` + `![${prompt}](${result.url})`
+        ? `🎨 图片编辑成功\n\n提示词: ${prompt}\n\n![${prompt}](${result.url})`
         : `🎨 图片生成成功\n\n` +
           `提示词: ${prompt}\n` +
           `尺寸: ${width}x${height}\n\n` +
