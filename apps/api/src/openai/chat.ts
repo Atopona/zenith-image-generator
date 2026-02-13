@@ -1,8 +1,10 @@
 import { Errors } from '@z-image/shared'
 import type { Context } from 'hono'
-import { ensureCustomChannelsInitialized, getChannel, getLLMChannel } from '../channels'
+import { ensureCustomChannelsInitialized, getChannel, getImageChannel, getLLMChannel } from '../channels'
 import { parseTokens, runWithTokenRotation } from '../core/token-manager'
 import { sendError } from '../middleware'
+import { parseSize } from './adapter'
+import { resolveModel } from './model-resolver'
 import type { OpenAIChatRequest, OpenAIChatResponse } from './types'
 
 function parseChatBearerToken(authHeader?: string): {
@@ -38,6 +40,59 @@ function parseChatBearerToken(authHeader?: string): {
 
   return { token: raw }
 }
+
+// -------- Image-via-Chat helpers --------
+
+const IMAGE_MODEL_PREFIX = 'image/'
+
+function isImageModel(model: string): boolean {
+  return model.trim().startsWith(IMAGE_MODEL_PREFIX)
+}
+
+function resolveImageModelForChat(model: string): { channelId: string; model: string } {
+  const inner = model.trim().slice(IMAGE_MODEL_PREFIX.length)
+
+  // Support custom/ prefix
+  if (inner.startsWith('custom/')) {
+    const rest = inner.slice('custom/'.length)
+    const firstSlash = rest.indexOf('/')
+    if (firstSlash > 0) {
+      const channelId = rest.slice(0, firstSlash).trim()
+      const m = rest.slice(firstSlash + 1).trim()
+      if (channelId) return { channelId, model: m }
+    }
+  }
+
+  const resolved = resolveModel(inner || undefined)
+  return { channelId: resolved.provider, model: resolved.model }
+}
+
+/** Extract --size and --negative from user prompt, return cleaned prompt + params */
+function parseImageParams(raw: string): {
+  prompt: string
+  size?: string
+  negativePrompt?: string
+} {
+  let size: string | undefined
+  let negativePrompt: string | undefined
+
+  let text = raw.replace(/--size\s+(\d+x\d+)/i, (_, s) => {
+    size = s
+    return ''
+  })
+  text = text.replace(/--negative\s+"([^"]+)"/i, (_, n) => {
+    negativePrompt = n
+    return ''
+  })
+  text = text.replace(/--negative\s+(\S+)/i, (_, n) => {
+    negativePrompt = n
+    return ''
+  })
+
+  return { prompt: text.trim(), size, negativePrompt }
+}
+
+// -------- LLM Chat helpers --------
 
 function resolveChatModel(model: string): {
   channelId: string
@@ -136,9 +191,63 @@ export async function handleChatCompletion(c: Context) {
     return sendError(c, Errors.invalidParams('messages', 'At least one user message is required'))
   }
 
+  const auth = parseChatBearerToken(c.req.header('Authorization'))
+
+  // -------- Image generation via Chat --------
+  if (isImageModel(body.model)) {
+    const { channelId, model: imageModel } = resolveImageModelForChat(body.model)
+
+    if (auth.providerHint && auth.providerHint !== channelId) {
+      return sendError(
+        c,
+        Errors.invalidParams('Authorization', 'Token prefix does not match requested model provider')
+      )
+    }
+
+    const channel = getChannel(channelId)
+    const imageCapability = getImageChannel(channelId)
+    if (!channel || !imageCapability) {
+      return sendError(c, Errors.invalidParams('model', `Unsupported image provider: ${channelId}`))
+    }
+
+    const allowAnonymous =
+      channel.config.auth.type === 'none' || channel.config.auth.optional === true
+    const headerTokens = parseTokens(auth.token)
+    const tokens = headerTokens.length ? headerTokens : channel.config.tokens || []
+    if (!allowAnonymous && tokens.length === 0) {
+      return sendError(c, Errors.authRequired(channel.name))
+    }
+
+    const { prompt, size, negativePrompt } = parseImageParams(userPrompt)
+    if (!prompt) {
+      return sendError(c, Errors.invalidPrompt('Image prompt is required'))
+    }
+
+    const { width, height } = parseSize(size)
+    const resolvedModel = imageModel || channel.config.imageModels?.[0]?.id
+
+    try {
+      const result = await runWithTokenRotation(
+        channel.id,
+        tokens,
+        (token) =>
+          imageCapability.generate(
+            { prompt, negativePrompt, width, height, model: resolvedModel },
+            token
+          ),
+        { allowAnonymous }
+      )
+
+      const content = `![${prompt}](${result.url})\n\nGenerated with model \`${resolvedModel || channelId}\` (${width}x${height})`
+      return c.json(makeChatResponse(body.model, content))
+    } catch (err) {
+      return sendError(c, err)
+    }
+  }
+
+  // -------- Normal LLM Chat --------
   const systemPrompt = getSystemPrompt(body.messages)
   const resolved = resolveChatModel(body.model)
-  const auth = parseChatBearerToken(c.req.header('Authorization'))
 
   if (auth.providerHint && auth.providerHint !== resolved.channelId) {
     return sendError(

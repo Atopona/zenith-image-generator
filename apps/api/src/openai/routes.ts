@@ -31,10 +31,12 @@ function listModels(): OpenAIModelsListResponse {
   const modelscopeModels = getModelsByProvider('modelscope').map((m) => m.id)
   const a4fModels = getModelsByProvider('a4f').map((m) => m.id)
 
+  const hfImageIds = ['z-image-turbo', 'qwen-image-fast', 'ovis-image', 'flux-1-schnell']
+
   return {
     object: 'list',
     data: [
-      ...['z-image-turbo', 'qwen-image-fast', 'ovis-image', 'flux-1-schnell'].map((id) => ({
+      ...hfImageIds.map((id) => ({
         id,
         object: 'model' as const,
         created,
@@ -62,6 +64,31 @@ function listModels(): OpenAIModelsListResponse {
       }),
       ...a4fModels.map((id) => ({
         id: `a4f/${id}`,
+        object: 'model' as const,
+        created,
+        owned_by: 'a4f',
+      })),
+      // Image-via-Chat models (image/ prefix for use with /v1/chat/completions)
+      ...hfImageIds.map((id) => ({
+        id: `image/${id}`,
+        object: 'model' as const,
+        created,
+        owned_by: 'huggingface',
+      })),
+      ...giteeModels.map((id) => ({
+        id: `image/gitee/${id}`,
+        object: 'model' as const,
+        created,
+        owned_by: 'gitee',
+      })),
+      ...modelscopeModels.map((id) => ({
+        id: `image/ms/${id}`,
+        object: 'model' as const,
+        created,
+        owned_by: 'modelscope',
+      })),
+      ...a4fModels.map((id) => ({
+        id: `image/a4f/${id}`,
         object: 'model' as const,
         created,
         owned_by: 'a4f',
