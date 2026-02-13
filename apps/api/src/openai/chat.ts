@@ -204,6 +204,41 @@ function makeChatResponse(model: string, content: string): OpenAIChatResponse {
   }
 }
 
+/** Return a streaming SSE response compatible with OpenAI chat completions. */
+function streamChatResponse(c: Context, model: string, content: string) {
+  const id = `chatcmpl-${Math.random().toString(36).slice(2)}`
+  const created = Math.floor(Date.now() / 1000)
+
+  const chunk = {
+    id,
+    object: 'chat.completion.chunk',
+    created,
+    model,
+    choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }],
+  }
+  const doneChunk = {
+    id,
+    object: 'chat.completion.chunk',
+    created,
+    model,
+    choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+  }
+
+  const body = `data: ${JSON.stringify(chunk)}\n\ndata: ${JSON.stringify(doneChunk)}\n\ndata: [DONE]\n\n`
+
+  return c.body(body, 200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  })
+}
+
+/** Return either streaming or non-streaming chat response based on request. */
+function sendChatResult(c: Context, model: string, content: string, stream?: boolean) {
+  if (stream) return streamChatResponse(c, model, content)
+  return c.json(makeChatResponse(model, content))
+}
+
 export async function handleChatCompletion(c: Context) {
   ensureCustomChannelsInitialized(
     c.env as unknown as Record<string, string | undefined> | undefined
@@ -285,7 +320,7 @@ export async function handleChatCompletion(c: Context) {
         `提示词: ${prompt}\n` +
         `尺寸: ${width}x${height}\n\n` +
         `点击查看图片:\n${result.url}`
-      return c.json(makeChatResponse(body.model, content))
+      return sendChatResult(c, body.model, content, body.stream)
     } catch (err) {
       return sendError(c, err)
     }
@@ -340,7 +375,7 @@ export async function handleChatCompletion(c: Context) {
       { allowAnonymous }
     )
 
-    return c.json(makeChatResponse(result.model, result.content))
+    return sendChatResult(c, result.model, result.content, body.stream)
   } catch (err) {
     return sendError(c, err)
   }
