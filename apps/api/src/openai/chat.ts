@@ -280,7 +280,8 @@ export async function handleChatCompletion(c: Context) {
         { allowAnonymous }
       )
 
-      const content = `${result.url}\n\n![${prompt}](${result.url})`
+      const content =
+        `Image generated successfully!\n\n` + `Prompt: ${prompt}\n` + `Image URL: ${result.url}`
       return c.json(makeChatResponse(body.model, content))
     } catch (err) {
       return sendError(c, err)
