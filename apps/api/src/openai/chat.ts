@@ -315,11 +315,7 @@ export async function handleChatCompletion(c: Context) {
         { allowAnonymous }
       )
 
-      const content =
-        `🎨 图片生成成功\n\n` +
-        `提示词: ${prompt}\n` +
-        `尺寸: ${width}x${height}\n\n` +
-        `点击查看图片:\n${result.url}`
+      const content = `![${prompt}](${result.url})`
       return sendChatResult(c, body.model, content, body.stream)
     } catch (err) {
       return sendError(c, err)
