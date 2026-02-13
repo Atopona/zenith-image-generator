@@ -71,6 +71,7 @@ export interface OpenAIChatRequest {
   messages: OpenAIChatMessage[]
   temperature?: number
   max_tokens?: number
+  stream?: boolean
 }
 
 export interface OpenAIChatResponse {
