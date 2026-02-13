@@ -184,7 +184,7 @@ export function registerOpenAIRoutes(app: Hono) {
 
   v1.post(
     '/chat/completions',
-    bodyLimit(50 * 1024),
+    bodyLimit(10 * 1024 * 1024),
     rateLimitPresets.optimize,
     handleChatCompletion
   )
