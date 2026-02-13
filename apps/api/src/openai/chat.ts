@@ -1,5 +1,6 @@
 import { Errors } from '@z-image/shared'
 import type { Context } from 'hono'
+import type { OpenAIChatContentPart, OpenAIChatMessage } from '@z-image/shared'
 import {
   ensureCustomChannelsInitialized,
   getChannel,
@@ -11,6 +12,29 @@ import { sendError } from '../middleware'
 import { parseSize } from './adapter'
 import { isKnownImageModel, resolveModel } from './model-resolver'
 import type { OpenAIChatRequest, OpenAIChatResponse } from './types'
+
+/** Extract the text portion from a message content (string or multimodal parts) */
+function getTextContent(content: string | OpenAIChatContentPart[]): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  return content
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join('\n')
+}
+
+/** Extract the first image URL from multimodal content parts */
+function getImageUrlFromContent(
+  content: string | OpenAIChatContentPart[],
+): string | undefined {
+  if (typeof content === 'string') return undefined
+  if (!Array.isArray(content)) return undefined
+  const imgPart = content.find(
+    (p): p is { type: 'image_url'; image_url: { url: string } } =>
+      p.type === 'image_url',
+  )
+  return imgPart?.image_url?.url
+}
 
 function parseChatBearerToken(authHeader?: string): {
   providerHint?: string
@@ -179,7 +203,7 @@ function resolveChatModel(model: string): {
 function getSystemPrompt(messages: OpenAIChatRequest['messages']): string {
   return messages
     .filter((m) => m.role === 'system')
-    .map((m) => m.content)
+    .map((m) => getTextContent(m.content))
     .join('\n')
     .trim()
 }
@@ -187,7 +211,7 @@ function getSystemPrompt(messages: OpenAIChatRequest['messages']): string {
 function getUserPrompt(messages: OpenAIChatRequest['messages']): string | null {
   const parts = messages
     .filter((m) => m.role === 'user')
-    .map((m) => m.content)
+    .map((m) => getTextContent(m.content))
     .filter((s) => s && s.trim().length > 0)
   if (parts.length === 0) return null
   return parts.join('\n').trim()
@@ -196,11 +220,23 @@ function getUserPrompt(messages: OpenAIChatRequest['messages']): string | null {
 /** Get only the last user message — used for image generation to avoid history pollution. */
 function getLastUserPrompt(messages: OpenAIChatRequest['messages']): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user' && messages[i].content?.trim()) {
-      return messages[i].content.trim()
+    if (messages[i].role === 'user') {
+      const text = getTextContent(messages[i].content).trim()
+      if (text) return text
     }
   }
   return null
+}
+
+/** Get the first image URL from the last user message (for multimodal image editing) */
+function getLastUserImageUrl(messages: OpenAIChatRequest['messages']): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      const url = getImageUrlFromContent(messages[i].content)
+      if (url) return url
+    }
+  }
+  return undefined
 }
 
 function makeChatResponse(model: string, content: string): OpenAIChatResponse {
@@ -316,10 +352,15 @@ export async function handleChatCompletion(c: Context) {
       return sendError(c, Errors.authRequired(channel.name))
     }
 
-    const { prompt, size, negativePrompt, sourceImageUrl } = parseImageParams(imagePrompt)
+    const { prompt, size, negativePrompt, sourceImageUrl: promptImageUrl } =
+      parseImageParams(imagePrompt)
     if (!prompt) {
       return sendError(c, Errors.invalidPrompt('Image prompt is required'))
     }
+
+    // Source image: prefer multimodal image_url from message, fall back to --image in prompt
+    const multimodalImageUrl = getLastUserImageUrl(body.messages)
+    const sourceImageUrl = multimodalImageUrl || promptImageUrl
 
     const { width, height } = parseSize(size)
     const resolvedModel = imageModel || channel.config.imageModels?.[0]?.id

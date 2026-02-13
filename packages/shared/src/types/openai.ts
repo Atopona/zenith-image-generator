@@ -63,9 +63,22 @@ export interface OpenAIImageResponse {
 
 export type OpenAIChatRole = 'system' | 'user' | 'assistant'
 
+export interface OpenAIChatTextPart {
+  type: 'text'
+  text: string
+}
+
+export interface OpenAIChatImagePart {
+  type: 'image_url'
+  image_url: { url: string; detail?: string }
+}
+
+export type OpenAIChatContentPart = OpenAIChatTextPart | OpenAIChatImagePart
+
 export interface OpenAIChatMessage {
   role: OpenAIChatRole
-  content: string
+  /** String for simple text, or array of content parts for multimodal messages */
+  content: string | OpenAIChatContentPart[]
 }
 
 export interface OpenAIChatRequest {
