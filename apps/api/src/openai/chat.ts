@@ -9,7 +9,7 @@ import {
 import { parseTokens, runWithTokenRotation } from '../core/token-manager'
 import { sendError } from '../middleware'
 import { parseSize } from './adapter'
-import { resolveModel } from './model-resolver'
+import { isKnownImageModel, resolveModel } from './model-resolver'
 import type { OpenAIChatRequest, OpenAIChatResponse } from './types'
 
 function parseChatBearerToken(authHeader?: string): {
@@ -97,9 +97,8 @@ function tryResolveImageModel(model: string): { channelId: string; model: string
   // if the model name matches a known image model (not a LLM model).
   const channel = getChannel(resolved.provider)
   if (channel?.llm) {
-    // Channel has LLM too — check if the model is specifically an image model
-    const isKnownImageModel = channel.config.imageModels?.some((m) => m.id === resolved.model)
-    return isKnownImageModel ? { channelId: resolved.provider, model: resolved.model } : null
+    // Channel has LLM too — check via model-resolver's known image model list
+    return isKnownImageModel(inner) ? { channelId: resolved.provider, model: resolved.model } : null
   }
 
   // Channel only has image capability — auto-detect

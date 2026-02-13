@@ -42,3 +42,16 @@ export function resolveModel(modelParam?: string): ResolvedModel {
 
   return { provider: 'huggingface', model: HF_MODELS.has(model) ? model : DEFAULT_HF_MODEL }
 }
+
+/** Check if a raw model string (as sent by the client) is a known image model. */
+export function isKnownImageModel(modelParam?: string): boolean {
+  const model = (modelParam || '').trim()
+  if (!model) return false
+
+  if (model.startsWith('gitee/'))
+    return GITEE_MODEL_ALIASES[model.slice('gitee/'.length)] !== undefined
+  if (model.startsWith('ms/'))
+    return MODELSCOPE_MODEL_ALIASES[model.slice('ms/'.length)] !== undefined
+  if (model.startsWith('a4f/')) return true
+  return HF_MODELS.has(model)
+}
