@@ -281,7 +281,10 @@ export async function handleChatCompletion(c: Context) {
       )
 
       const content =
-        `Image generated successfully!\n\n` + `Prompt: ${prompt}\n` + `Image URL: ${result.url}`
+        `🎨 图片生成成功\n\n` +
+        `提示词: ${prompt}\n` +
+        `尺寸: ${width}x${height}\n\n` +
+        `点击查看图片:\n${result.url}`
       return c.json(makeChatResponse(body.model, content))
     } catch (err) {
       return sendError(c, err)
