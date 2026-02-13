@@ -1,6 +1,11 @@
 import { Errors } from '@z-image/shared'
 import type { Context } from 'hono'
-import { ensureCustomChannelsInitialized, getChannel, getImageChannel, getLLMChannel } from '../channels'
+import {
+  ensureCustomChannelsInitialized,
+  getChannel,
+  getImageChannel,
+  getLLMChannel,
+} from '../channels'
 import { parseTokens, runWithTokenRotation } from '../core/token-manager'
 import { sendError } from '../middleware'
 import { parseSize } from './adapter'
@@ -200,7 +205,10 @@ export async function handleChatCompletion(c: Context) {
     if (auth.providerHint && auth.providerHint !== channelId) {
       return sendError(
         c,
-        Errors.invalidParams('Authorization', 'Token prefix does not match requested model provider')
+        Errors.invalidParams(
+          'Authorization',
+          'Token prefix does not match requested model provider'
+        )
       )
     }
 
