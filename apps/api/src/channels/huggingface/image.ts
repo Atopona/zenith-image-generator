@@ -22,8 +22,11 @@ function parseSeedFromResponse(modelId: string, result: unknown[], fallbackSeed:
 
 function getCandidateBaseUrls(modelId: string): string[] {
   const primary = HF_SPACES[modelId as keyof typeof HF_SPACES] || HF_SPACES['z-image-turbo']
-  const fallbacks =
-    modelId === 'z-image-turbo' ? ['https://mrfakename-z-image-turbo.hf.space'] : ([] as string[])
+  const fallbackMap: Record<string, string[]> = {
+    'z-image-turbo': ['https://mrfakename-z-image-turbo.hf.space'],
+    'z-image': ['https://mrfakename-z-image.hf.space'],
+  }
+  const fallbacks = fallbackMap[modelId] || ([] as string[])
   return [primary, ...fallbacks].filter(Boolean)
 }
 
@@ -58,6 +61,19 @@ const MODEL_CONFIGS: Record<
   'flux-1-schnell': {
     endpoint: 'infer',
     buildData: (r, seed) => [r.prompt, seed, false, r.width, r.height, r.steps ?? 8],
+  },
+  'z-image': {
+    endpoint: 'generate_image',
+    buildData: (r, seed) => [
+      r.prompt,
+      r.negativePrompt || '',
+      r.height,
+      r.width,
+      r.steps ?? 28,
+      r.guidanceScale ?? 4.0,
+      seed,
+      false,
+    ],
   },
 }
 

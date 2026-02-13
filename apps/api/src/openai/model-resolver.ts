@@ -6,7 +6,13 @@ interface ResolvedModel {
 }
 
 const DEFAULT_HF_MODEL = 'z-image-turbo'
-const HF_MODELS = new Set(['z-image-turbo', 'qwen-image-fast', 'ovis-image', 'flux-1-schnell'])
+const HF_MODELS = new Set([
+  'z-image-turbo',
+  'qwen-image-fast',
+  'ovis-image',
+  'flux-1-schnell',
+  'z-image',
+])
 
 const GITEE_MODEL_ALIASES: Record<string, string> = {
   'z-image-turbo': 'z-image-turbo',

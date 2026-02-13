@@ -11,6 +11,7 @@ export const HF_SPACES = {
   'qwen-image-fast': 'https://mcp-tools-qwen-image-fast.hf.space',
   'ovis-image': 'https://aidc-ai-ovis-image-7b.hf.space',
   'flux-1-schnell': 'https://black-forest-labs-flux-1-schnell.hf.space',
+  'z-image': 'https://mrfakename-z-image.hf.space',
   upscaler: 'https://tuan2308-upscaler.hf.space',
 } as const
 

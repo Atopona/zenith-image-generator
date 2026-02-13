@@ -31,7 +31,7 @@ function listModels(): OpenAIModelsListResponse {
   const modelscopeModels = getModelsByProvider('modelscope').map((m) => m.id)
   const a4fModels = getModelsByProvider('a4f').map((m) => m.id)
 
-  const hfImageIds = ['z-image-turbo', 'qwen-image-fast', 'ovis-image', 'flux-1-schnell']
+  const hfImageIds = ['z-image-turbo', 'qwen-image-fast', 'ovis-image', 'flux-1-schnell', 'z-image']
 
   return {
     object: 'list',
