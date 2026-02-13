@@ -123,12 +123,8 @@ export function registerOpenAIRoutes(app: Hono) {
       return sendError(c, Errors.invalidParams('n', 'Only n=1 is supported'))
     }
 
-    if (body.response_format !== undefined && body.response_format !== 'url') {
-      return sendError(
-        c,
-        Errors.invalidParams('response_format', "Only response_format='url' is supported")
-      )
-    }
+    // Ignore response_format — we always return URLs regardless of what the client requests.
+    // Many clients (e.g. ChatGPT Next Web) send b64_json by default.
 
     const { channelId, model } = resolveImageChannel(body.model)
     const auth = parseBearerToken(c.req.header('Authorization'))
