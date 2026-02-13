@@ -280,7 +280,7 @@ export async function handleChatCompletion(c: Context) {
         { allowAnonymous }
       )
 
-      const content = `![${prompt}](${result.url})\n\nGenerated with model \`${resolvedModel || channelId}\` (${width}x${height})`
+      const content = `${result.url}\n\n![${prompt}](${result.url})`
       return c.json(makeChatResponse(body.model, content))
     } catch (err) {
       return sendError(c, err)
