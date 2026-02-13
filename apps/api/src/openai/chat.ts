@@ -187,6 +187,16 @@ function getUserPrompt(messages: OpenAIChatRequest['messages']): string | null {
   return parts.join('\n').trim()
 }
 
+/** Get only the last user message — used for image generation to avoid history pollution. */
+function getLastUserPrompt(messages: OpenAIChatRequest['messages']): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user' && messages[i].content?.trim()) {
+      return messages[i].content.trim()
+    }
+  }
+  return null
+}
+
 function makeChatResponse(model: string, content: string): OpenAIChatResponse {
   const id = `chatcmpl-${Math.random().toString(36).slice(2)}`
   return {
@@ -269,6 +279,11 @@ export async function handleChatCompletion(c: Context) {
   // -------- Image generation via Chat --------
   const imageResolved = tryResolveImageModel(body.model)
   if (imageResolved) {
+    const imagePrompt = getLastUserPrompt(body.messages)
+    if (!imagePrompt) {
+      return sendError(c, Errors.invalidPrompt('Image prompt is required'))
+    }
+
     const { channelId, model: imageModel } = imageResolved
 
     if (auth.providerHint && auth.providerHint !== channelId) {
@@ -295,7 +310,7 @@ export async function handleChatCompletion(c: Context) {
       return sendError(c, Errors.authRequired(channel.name))
     }
 
-    const { prompt, size, negativePrompt } = parseImageParams(userPrompt)
+    const { prompt, size, negativePrompt } = parseImageParams(imagePrompt)
     if (!prompt) {
       return sendError(c, Errors.invalidPrompt('Image prompt is required'))
     }
